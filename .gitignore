@@ -1,0 +1,35 @@
+# Python-related ignores
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+
+# Environment files (sensitive data)
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+
+# Local data (excluding potential .gitkeep files)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Database files
+weather.db
+*.db
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# IDE and system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
