@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: weather_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_docker_pass
+      POSTGRES_DB: weather_db
+    ports:
+      - "5432:5432"  # Expose port so host applications (like Power BI or local SQL clients) can connect
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pipeline:
+    build: .
+    container_name: weather_pipeline_app
+    restart: "no"  # Do not loop infinitely; it runs once as a batch ETL job and exits
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      # Override local .env database settings to run within the Docker bridge network
+      DB_TYPE: postgresql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: weather_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres_docker_pass
+    volumes:
+      # Mount host directories to persist pipeline outputs (Bronze/Silver/Logs) locally in real-time
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+volumes:
+  postgres_data:
