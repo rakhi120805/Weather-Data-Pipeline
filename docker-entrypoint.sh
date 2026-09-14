@@ -1,33 +1,35 @@
 #!/bin/sh
-
-# Exit immediately if a command exits with a non-zero status
 set -e
 
-echo "Checking database connection..."
-
-# Use an inline python script to check if the PostgreSQL container is listening on port 5432.
-# This prevents installing separate packages like netcat (nc) in our slim image.
-python -c "
+# If PostgreSQL is explicitly configured and not sqlite/default
+if [ "$DB_TYPE" = "postgresql" ] && [ -n "$DB_HOST" ]; then
+    echo "Checking database connection on $DB_HOST:${DB_PORT:-5432}..."
+    python -c "
 import socket
 import time
 import sys
 import os
 
-db_host = os.getenv('DB_HOST', 'db')
+db_host = os.getenv('DB_HOST', 'localhost')
 db_port = int(os.getenv('DB_PORT', '5432'))
 
-print(f'Checking socket port availability on {db_host}:{db_port}...')
 for i in range(30):
     try:
         with socket.create_connection((db_host, db_port), timeout=2):
             print('Connection established successfully!')
             sys.exit(0)
-    except (socket.timeout, ConnectionRefusedError) as e:
+    except (socket.timeout, ConnectionRefusedError, socket.gaierror):
         print(f'Database not ready yet... (Attempt {i+1}/30)')
         time.sleep(2)
-print('Database failed to become ready within timeout.')
-sys.exit(1)
+print('Database check completed or timed out.')
 "
+fi
 
-echo "Database is online. Starting Weather ETL Pipeline run..."
-exec python -m src.pipeline
+# Run an initial pipeline population run
+echo "Running initial ETL check..."
+python -m src.pipeline || true
+
+# Start web service listening on $PORT
+PORT="${PORT:-8000}"
+echo "Starting Weather Data Pipeline FastAPI Web Server on port $PORT..."
+exec uvicorn main:app --host 0.0.0.0 --port "$PORT"

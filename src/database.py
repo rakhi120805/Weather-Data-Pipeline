@@ -62,13 +62,12 @@ class DatabaseManager:
 
     def __init__(self) -> None:
         self.connection_url = config.db.connection_url
-        self.db_type = config.db.db_type
+        self.is_sqlite = self.connection_url.startswith("sqlite")
+        db_kind = "SQLite" if self.is_sqlite else "PostgreSQL"
+        logger.info(f"Initializing Database connection pool to: {db_kind}")
         
-        logger.info(f"Initializing Database connection pool to: {self.db_type}")
-        
-        # Configure engine. For SQLite, we add connect_args={'timeout': 15} to handle locks,
-        # and echo=False (set to True to debug raw SQL queries)
-        if self.db_type == "sqlite":
+        # Configure engine. For SQLite, we add connect_args={'check_same_thread': False}
+        if self.is_sqlite:
             self.engine = create_engine(
                 self.connection_url, 
                 connect_args={"check_same_thread": False}

@@ -26,7 +26,15 @@ class DatabaseConfig:
 
     @property
     def connection_url(self) -> str:
-        """Generate SQLAlchemy connection URL."""
+        """Generate SQLAlchemy connection URL with cloud DATABASE_URL auto-detection."""
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            # Render and Heroku supply DATABASE_URL starting with postgres://
+            # SQLAlchemy 1.4+ requires postgresql://
+            if database_url.startswith("postgres://"):
+                database_url = database_url.replace("postgres://", "postgresql://", 1)
+            return database_url
+
         if self.db_type == "sqlite":
             # Store local SQLite database file in the project directory
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
